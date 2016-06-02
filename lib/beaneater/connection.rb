@@ -9,7 +9,7 @@ class Beaneater
     MAX_RETRIES = 3
 
     # Default retry interval
-    DEFAULT_RETRY_INTERVAL = 1
+    DEFAULT_RETRY_INTERVAL = 0.2
 
     # @!attribute address
     #   @return [String] returns Beanstalkd server address
@@ -72,7 +72,7 @@ class Beaneater
     def transmit(command, options={})
       _with_retry(options[:retry_interval], options[:init]) do
         @mutex.synchronize do
-          _raise_not_connected! unless connection
+          establish_connection unless connection
 
           command = command.force_encoding('ASCII-8BIT') if command.respond_to?(:force_encoding)
           connection.write(command.to_s + "\r\n")
@@ -191,6 +191,11 @@ class Beaneater
       yield
     rescue EOFError, Errno::ECONNRESET, Errno::EPIPE,
       Errno::ECONNREFUSED => ex
+      tries -= 1
+      if tries.zero?
+        close
+        raise
+      end
       _reconnect(ex, retry_interval)
       _initialize_tubes if init
       retry

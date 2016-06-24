@@ -55,8 +55,8 @@ class Beaneater
       @tubes_watched = ['default']
 
       establish_connection
-    rescue
-      _raise_not_connected!
+    #rescue
+      #_raise_not_connected!
     end
 
     # Send commands to beanstalkd server via connection.

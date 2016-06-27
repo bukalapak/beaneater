@@ -196,6 +196,7 @@ class Beaneater
         close
         raise
       end
+      sleep(retry_interval || DEFAULT_RETRY_INTERVAL)
       _reconnect(ex, retry_interval)
       _initialize_tubes if init
       retry

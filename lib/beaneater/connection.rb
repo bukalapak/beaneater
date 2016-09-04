@@ -1,5 +1,6 @@
 require 'yaml'
 require 'socket'
+require 'tcp_timeout'
 
 class Beaneater
   # Represents a connection to a beanstalkd instance.
@@ -27,6 +28,8 @@ class Beaneater
     #   @return [Net::TCPSocket] returns connection object
     attr_reader :address, :host, :port, :connection
 
+    attr_reader :connect_timeout, :read_timeout, :write_timeout
+
     # @!attribute tubes_watched
     #   @returns [Array<String>] returns currently watched tube names
     # @!attribute tube_used
@@ -48,15 +51,19 @@ class Beaneater
     #   @b.connection.host # => '127.0.0.1'
     #   @b.connection.port # => '11300'
     #
-    def initialize(address)
+    def initialize(address, options = {})
       @address = address || _host_from_env || Beaneater.configuration.beanstalkd_url
       @mutex = Mutex.new
       @tube_used = 'default'
       @tubes_watched = ['default']
 
+      @connect_timeout  = options[:connect_timeout] || 5
+      @read_timeout     = options[:read_timeout] || 5
+      @write_timeout    = options[:write_timeout] || 5
+
       establish_connection
-    #rescue
-      #_raise_not_connected!
+    rescue
+      _raise_not_connected!
     end
 
     # Send commands to beanstalkd server via connection.
@@ -127,7 +134,10 @@ class Beaneater
       match = address.split(':')
       @host, @port = match[0], Integer(match[1] || DEFAULT_PORT)
 
-      @connection = TCPSocket.new @host, @port
+      @connection = TCPTimeout::TCPSocket.new( @host, @port,
+        connect_timeout: connect_timeout,
+        write_timeout: write_timeout,
+        read_timeout: read_timeout )
     end
 
     # Parses the response and returns the useful beanstalk response.

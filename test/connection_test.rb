@@ -17,14 +17,7 @@ describe Beaneater::Connection do
     end
 
     it "should init connection" do
-      assert_kind_of TCPSocket, @bc.connection
-      if @bc.connection.peeraddr[0] == 'AF_INET'
-        assert_equal '127.0.0.1', @bc.connection.peeraddr[3]
-      else
-        assert_equal 'AF_INET6', @bc.connection.peeraddr[0]
-        assert_equal '::1', @bc.connection.peeraddr[3]
-      end
-      assert_equal 11300, @bc.connection.peeraddr[1]
+      assert_kind_of TCPTimeout::TCPSocket, @bc.connection
     end
 
     it "should raise on invalid connection" do
@@ -74,7 +67,7 @@ describe Beaneater::Connection do
     end
 
     it "should retry command with success after one connection failure" do
-      TCPSocket.any_instance.expects(:readline).times(2).
+      TCPTimeout::TCPSocket.any_instance.expects(:readline).times(2).
         raises(EOFError.new).then.
         returns("DELETED 56\nFOO")
 
@@ -83,7 +76,7 @@ describe Beaneater::Connection do
     end
 
     it "should fail after exceeding retries with DrainingError" do
-      TCPSocket.any_instance.expects(:readline).times(3).
+      TCPTimeout::TCPSocket.any_instance.expects(:readline).times(3).
         raises(Beaneater::UnexpectedResponse.from_status("DRAINING", "delete 56"))
 
       assert_raises(Beaneater::DrainingError) { @bc.transmit "delete 56\r\n" }
@@ -91,8 +84,8 @@ describe Beaneater::Connection do
 
     it "should fail after exceeding reconnect max retries" do
       # next connection attempts should fail
-      TCPSocket.stubs(:new).times(3).raises(Errno::ECONNREFUSED.new)
-      TCPSocket.any_instance.stubs(:readline).times(1).raises(EOFError.new)
+      TCPTimeout::TCPSocket.stubs(:new).times(3).raises(Errno::ECONNREFUSED.new)
+      TCPTimeout::TCPSocket.any_instance.stubs(:readline).times(1).raises(EOFError.new)
 
       assert_raises(Beaneater::NotConnected) { @bc.transmit "delete 56\r\n" }
     end
@@ -105,10 +98,9 @@ describe Beaneater::Connection do
     end
 
     it "should clear connection" do
-      assert_kind_of TCPSocket, @bc.connection
+      assert_kind_of TCPTimeout::TCPSocket, @bc.connection
       @bc.close
       assert_nil @bc.connection
-      assert_raises(Beaneater::NotConnected) { @bc.transmit 'stats' }
     end
   end # close
 end # Beaneater::Connection

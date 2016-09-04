@@ -21,8 +21,8 @@ class Beaneater
   #   @b.connection.host # => '127.0.0.1'
   #   @b.connection.port # => '11300'
   #
-  def initialize(address=nil)
-    @connection =  Connection.new(address)
+  def initialize(address=nil, options = {})
+    @connection =  Connection.new(address, options)
   end
 
   # Returns Beaneater::Tubes object for accessing tube related functions.

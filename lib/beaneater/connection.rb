@@ -10,7 +10,7 @@ class Beaneater
     MAX_RETRIES = 3
 
     # Default retry interval
-    DEFAULT_RETRY_INTERVAL = 0.2
+    DEFAULT_RETRY_INTERVAL = 0.1
 
     # @!attribute address
     #   @return [String] returns Beanstalkd server address
@@ -57,9 +57,9 @@ class Beaneater
       @tube_used = 'default'
       @tubes_watched = ['default']
 
-      @connect_timeout  = options[:connect_timeout] || 5
-      @read_timeout     = options[:read_timeout] || 5
-      @write_timeout    = options[:write_timeout] || 5
+      @connect_timeout  = options[:connect_timeout] || 1
+      @write_timeout    = options[:write_timeout]   || 1
+      @read_timeout     = options[:read_timeout]    || 10
 
       establish_connection
     rescue
@@ -79,7 +79,7 @@ class Beaneater
     def transmit(command, options={})
       _with_retry(options[:retry_interval], options[:init]) do
         @mutex.synchronize do
-          establish_connection unless connection
+          _raise_not_connected! unless connection
 
           command = command.force_encoding('ASCII-8BIT') if command.respond_to?(:force_encoding)
           connection.write(command.to_s + "\r\n")
@@ -152,6 +152,7 @@ class Beaneater
     #   # => { :body => "FOO", :status => "DELETED", :id => 56 }
     #
     def parse_response(cmd, res)
+      _raise_not_connected! if res.nil?
       status = res.chomp
       body_values = status.split(/\s/)
       status = body_values[0]
@@ -204,7 +205,7 @@ class Beaneater
       tries -= 1
       if tries.zero?
         close
-        raise
+        _raise_not_connected!
       end
       sleep(retry_interval || DEFAULT_RETRY_INTERVAL)
       _reconnect(ex, retry_interval)

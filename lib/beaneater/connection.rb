@@ -79,7 +79,7 @@ class Beaneater
     def transmit(command, options={})
       _with_retry(options[:retry_interval], options[:init]) do
         @mutex.synchronize do
-          _raise_not_connected! unless connection
+          establish_connection unless connection
 
           command = command.force_encoding('ASCII-8BIT') if command.respond_to?(:force_encoding)
           connection.write(command.to_s + "\r\n")

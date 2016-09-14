@@ -105,8 +105,10 @@ class Beaneater
     #
     # @api public
     def stats
-      res = transmit("stats-job #{id}")
-      StatStruct.from_hash(res[:body])
+      @stats ||= begin
+        res = transmit("stats-job #{id}")
+        StatStruct.from_hash(res[:body])
+      end
     end
 
     # Check if job is currently in a reserved state.

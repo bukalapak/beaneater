@@ -10,7 +10,7 @@ class Beaneater
     #   s.foo # => 'bar'
     #
     def self.from_hash(hash)
-      return unless hash.is_a?(Hash)
+      hash = {} unless hash.is_a?(Hash)
       underscore_hash = hash.inject({}) { |r, (k, v)| r[k.to_s.gsub(/-/, '_')] = v; r }
       self.new(underscore_hash)
     end
